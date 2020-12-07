@@ -1,0 +1,655 @@
+Index: app/src/main/java/com/abdulrahman/nytimes/main/ui/main/view/PopularArticlesFragment.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.view\n\nimport android.os.Bundle\nimport android.view.View\nimport com.abdulrahman.nytimes.R\nimport com.abdulrahman.nytimes.main.data.model.Result\nimport com.abdulrahman.nytimes.main.ui.bases.BaseFragment\nimport com.abdulrahman.nytimes.main.ui.bases.OnListItemClickListener\nimport com.abdulrahman.nytimes.main.ui.bases.StateData\nimport com.abdulrahman.nytimes.main.ui.details.DetailsFragment\nimport com.abdulrahman.nytimes.main.ui.main.viewModel.MainViewModel\nimport kotlinx.android.synthetic.main.main_fragment.*\nimport org.koin.core.KoinComponent\nimport org.koin.core.inject\n\nclass MainFragment : BaseFragment(), OnListItemClickListener<Result>, KoinComponent {\n    override val layoutId: Int\n        get() = R.layout.main_fragment\n\n\n    private val viewModel: MainViewModel by inject()\n    override fun onActivityCreated(savedInstanceState: Bundle?) {\n        super.onActivityCreated(savedInstanceState)\n\n        observeAndShowArticles()\n        sr_refresh.setOnRefreshListener {\n            observeAndShowArticles()\n        }\n    }\n\n    private fun observeAndShowArticles() {\n        sr_refresh.isRefreshing = true\n\n        viewModel.getAllArticles().observe(requireActivity(), {\n            when (it.getStatus()) {\n\n                StateData.DataStatus.LOADING -> {\n                    fl_container.visibility = View.GONE\n                    showLayoutLoading()\n                }\n\n                StateData.DataStatus.SUCCESS -> {\n                    sr_refresh.isRefreshing = false\n                    fl_container.visibility = View.VISIBLE\n                    hideLayoutErrorAndLoading()\n                    it?.getData()?.let { res ->\n                        rv_articles.adapter = ArticleAdapter(requireContext(), res.results, this)\n                    } ?: run {\n                        showLayoutError(\"No Data found in list\")\n                    }\n                }\n\n                StateData.DataStatus.ERROR -> {\n                    fl_container.visibility = View.GONE\n                    showLayoutError(it.getError()?.message.toString())\n                }\n\n                StateData.DataStatus.NOT_COMPLETED -> {\n                    fl_container.visibility = View.GONE\n                    showLayoutError(\"Something wrong happened\")\n                }\n                StateData.DataStatus.NO_INTERNET -> {\n                    fl_container.visibility = View.GONE\n                    showLayoutError(\"No Internet Connection\")\n                }\n            }\n        })\n    }\n\n    override fun onItemClick(view: View, model: Result) {\n        val bundle = Bundle()\n        bundle.putParcelable(DetailsFragment.ARTICLE, model)\n        navigationController.navigate(R.id.action_homeFragment_to_detailsFragment, bundle)\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/abdulrahman/nytimes/main/ui/main/view/PopularArticlesFragment.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/java/com/abdulrahman/nytimes/main/ui/main/view/PopularArticlesFragment.kt	(date 1607366276000)
+@@ -7,18 +7,18 @@
+ import com.abdulrahman.nytimes.main.ui.bases.BaseFragment
+ import com.abdulrahman.nytimes.main.ui.bases.OnListItemClickListener
+ import com.abdulrahman.nytimes.main.ui.bases.StateData
+-import com.abdulrahman.nytimes.main.ui.details.DetailsFragment
+-import com.abdulrahman.nytimes.main.ui.main.viewModel.MainViewModel
++import com.abdulrahman.nytimes.main.ui.details.ArticleDetailsFragment
++import com.abdulrahman.nytimes.main.ui.main.viewModel.PopularArticlesViewModel
+ import kotlinx.android.synthetic.main.main_fragment.*
+ import org.koin.core.KoinComponent
+ import org.koin.core.inject
+ 
+-class MainFragment : BaseFragment(), OnListItemClickListener<Result>, KoinComponent {
++class PopularArticlesFragment : BaseFragment(), OnListItemClickListener<Result>, KoinComponent {
+     override val layoutId: Int
+         get() = R.layout.main_fragment
+ 
+ 
+-    private val viewModel: MainViewModel by inject()
++    private val viewModel: PopularArticlesViewModel by inject()
+     override fun onActivityCreated(savedInstanceState: Bundle?) {
+         super.onActivityCreated(savedInstanceState)
+ 
+@@ -69,7 +69,7 @@
+ 
+     override fun onItemClick(view: View, model: Result) {
+         val bundle = Bundle()
+-        bundle.putParcelable(DetailsFragment.ARTICLE, model)
++        bundle.putParcelable(ArticleDetailsFragment.ARTICLE, model)
+         navigationController.navigate(R.id.action_homeFragment_to_detailsFragment, bundle)
+     }
+ }
+Index: app/src/main/java/com/abdulrahman/nytimes/main/ui/main/viewModel/PopularArticlesViewModel.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.viewModel\n\nimport com.abdulrahman.nytimes.main.data.model.ResultResponse\nimport com.abdulrahman.nytimes.main.ui.bases.BaseViewModel\nimport com.abdulrahman.nytimes.main.ui.bases.StateLiveData\nimport com.abdulrahman.nytimes.main.ui.main.data.MainRepository\nimport com.abdulrahman.nytimes.main.utilities.NetworkConnection\nimport kotlinx.coroutines.CoroutineDispatcher\nimport kotlinx.coroutines.Dispatchers\n\nclass MainViewModel(\n    private val mainRepository: MainRepository,\n    private val networkConnection: NetworkConnection,\n    context: CoroutineDispatcher = Dispatchers.Main\n) : BaseViewModel(mainContext = context) {\n\n    private val allArticlesLiveData: StateLiveData<ResultResponse> = StateLiveData()\n\n    fun getAllArticles(): StateLiveData<ResultResponse> {\n\n        if (!networkConnection.isConnected()) {\n            publishNoInternet(allArticlesLiveData)\n            return allArticlesLiveData\n        }\n        launchJob {\n            performApiCall(allArticlesLiveData, mainRepository.getMostPopularArticles())\n        }\n        publishLoading(allArticlesLiveData)\n\n        return allArticlesLiveData\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/abdulrahman/nytimes/main/ui/main/viewModel/PopularArticlesViewModel.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/java/com/abdulrahman/nytimes/main/ui/main/viewModel/PopularArticlesViewModel.kt	(date 1607366944000)
+@@ -3,13 +3,13 @@
+ import com.abdulrahman.nytimes.main.data.model.ResultResponse
+ import com.abdulrahman.nytimes.main.ui.bases.BaseViewModel
+ import com.abdulrahman.nytimes.main.ui.bases.StateLiveData
+-import com.abdulrahman.nytimes.main.ui.main.data.MainRepository
++import com.abdulrahman.nytimes.main.ui.main.data.PopularArticlesRepository
+ import com.abdulrahman.nytimes.main.utilities.NetworkConnection
+ import kotlinx.coroutines.CoroutineDispatcher
+ import kotlinx.coroutines.Dispatchers
+ 
+-class MainViewModel(
+-    private val mainRepository: MainRepository,
++class PopularArticlesViewModel(
++    private val popularArticlesRepository: PopularArticlesRepository,
+     private val networkConnection: NetworkConnection,
+     context: CoroutineDispatcher = Dispatchers.Main
+ ) : BaseViewModel(mainContext = context) {
+@@ -23,7 +23,7 @@
+             return allArticlesLiveData
+         }
+         launchJob {
+-            performApiCall(allArticlesLiveData, mainRepository.getMostPopularArticles())
++            performApiCall(allArticlesLiveData, popularArticlesRepository.getMostPopularArticles())
+         }
+         publishLoading(allArticlesLiveData)
+ 
+Index: README.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+># NYTimes\nBuild a simple app to hit the NY Times Most Popular Articles API and show a list of articles, that shows details when items on the list are tapped (a typical master/detail app).\n\nI am using Model–view–ViewModel (MVVM) architectural pattern and Some of Android Jetpack Components \n\n\n## Developed Features\n1. Recyclerview \n2. Retrofit2 for server call and Live Data\n3. Kotlin\n4. Androidx & swiperefreshlayout & Constraintlayout\n5. Lifecycle - ViewModel\n6. Navigation \n7. Koin for Dependency Injection\n\n## Contributing\nAll pull requests are welcome, make sure to follow the contribution guidelines when you submit pull request.\n\n1. Fork it!\n2. Checkout the development branch: git checkout development\n3. Create your feature branch: git checkout -b my-new-feature\n4. Add your changes to the index: git add .\n5. Commit your changes: git commit -m 'Add some feature'\n6. Push to the branch: git push origin my-new-feature\n7. Submit a pull request against the development branch\n\n## Screen shots\n<img src=\"screenshots/Screenshot_1585350121.png\" width=\"250\"/> \n<img src=\"screenshots/Screenshot_1585350193.png\" width=\"250\"/>\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- README.md	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ README.md	(date 1607377020000)
+@@ -1,29 +1,22 @@
+-# NYTimes
+-Build a simple app to hit the NY Times Most Popular Articles API and show a list of articles, that shows details when items on the list are tapped (a typical master/detail app).
+-
+-I am using Model–view–ViewModel (MVVM) architectural pattern and Some of Android Jetpack Components 
++# NYTimes Popular Articles
++Simple App to display most popular articles from the newyork times 
++I used  MVVM  architectural pattern and navigation components  i followed clean archtecture guideline to make code more testable it have
++ 1- WebService Layer
++ 2- Repository Layer ( will manuplate data from online api and local storage later )
++ 3- View Layer contain viewmodel state based pattern and livedata as a state holder  
+ 
+ 
+-## Developed Features
+-1. Recyclerview 
+-2. Retrofit2 for server call and Live Data
+-3. Kotlin
+-4. Androidx & swiperefreshlayout & Constraintlayout
+-5. Lifecycle - ViewModel
+-6. Navigation 
+-7. Koin for Dependency Injection
++## Technologies used 
++1. Kotlin  
++2. Coroutine
++3. Koin  for dependency injection
++4. Retrofit
++5. Mockk for unit testing
++6. Kakao espresso based UI testing libarary  
++7. Roboelectric for mocking android context 
+ 
+-## Contributing
+-All pull requests are welcome, make sure to follow the contribution guidelines when you submit pull request.
++## Future Enhancements 
++1. save data locally to database and use Room library to see data offline
++2. add pagination feature and use paging3 library with it's powerfull mediator
++3. add more unit tests to cover more lines of code 
+ 
+-1. Fork it!
+-2. Checkout the development branch: git checkout development
+-3. Create your feature branch: git checkout -b my-new-feature
+-4. Add your changes to the index: git add .
+-5. Commit your changes: git commit -m 'Add some feature'
+-6. Push to the branch: git push origin my-new-feature
+-7. Submit a pull request against the development branch
+-
+-## Screen shots
+-<img src="screenshots/Screenshot_1585350121.png" width="250"/> 
+-<img src="screenshots/Screenshot_1585350193.png" width="250"/>
+Index: app/src/test/java/com/abdulrahman/nytimes/main/ui/main/data/PopularArticlesRepositoryTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.data\n\nimport com.abdulrahman.nytimes.main.data.model.Result\nimport com.abdulrahman.nytimes.main.data.model.ResultResponse\nimport com.abdulrahman.nytimes.main.data.retrofit.ApiInterface\nimport com.abdulrahman.nytimes.main.ui.bases.BasicResponse\nimport com.abdulrahman.nytimes.main.ui.bases.Fault\nimport com.abdulrahman.nytimes.main.ui.bases.result.Single\nimport com.google.common.truth.Truth\nimport io.mockk.coEvery\nimport io.mockk.mockk\nimport kotlinx.coroutines.runBlocking\nimport org.junit.Test\n\nclass MainRepositoryTest {\n    private val apiInterface: ApiInterface = mockk()\n\n    private val repository = MainRepository(apiInterface = apiInterface)\n\n    private val expectedResult = Result(\n        abstract = \"The metal structure has been removed, Utah officials said on Saturday, adding that they had not taken it down.\",\n        adxKeywords = \"test\",\n        assetId = 100000007477435,\n        byline = \"By Bryan Pietsch\",\n        desFacet = listOf(\"Art\", \"Sculpture\"),\n        etaId = 0,\n        geoFacet = listOf(\"Utah\"),\n        id = 11,\n        media = emptyList(),\n        nytdsection = \"test\",\n        orgFacet = listOf(\"Bureau of Land Management\"),\n        publishedDate = \"12-12-2020\",\n        section = \"U.S.\",\n        source = \"New York Times\",\n        subsection = \"\",\n        title = \"That Mysterious Monolith in the Utah Desert? It’s Gone, Officials Say\",\n        type = \"Article\",\n        updated = \"nyt://article/6bb97b0e-475e-5888-a484-962f2c241b3a\",\n        uri = \"https://www.nytimes.com/2020/11/28/us/monolith-utah-disappeared.html\",\n        url = \"https://www.nytimes.com/2020/11/28/us/monolith-utah-disappeared.html\",\n    )\n    private val expectedResultResponse = ResultResponse(\n        copyright = \"Copyright (c) 2020 The New York Times Company.  All Rights Reserved.\",\n        numResults = 20,\n        results = listOf(expectedResult),\n        status = \"OK\"\n    )\n\n    @Test\n    fun `on get popular api return articles`() = runBlocking {\n        coEvery { apiInterface.getMostPopular(any()).await() } returns expectedResultResponse\n        val actualResult = repository.getMostPopularArticles() as Single.Success\n        Truth.assertThat(actualResult.data.copyright).isEqualTo(expectedResultResponse.copyright)\n        Truth.assertThat(actualResult.data.results[0].id).isEqualTo(expectedResult.id)\n    }\n\n    @Test\n    fun `on get popular api return empty list`() = runBlocking {\n        val expectedResponse = ResultResponse(\n            copyright = \"Copyright (c) 2020 The New York Times Company.  All Rights Reserved.\",\n            numResults = 20,\n            results = listOf(),\n            status = \"OK\"\n        )\n        coEvery { apiInterface.getMostPopular(any()).await() } returns expectedResponse\n        val actualResult = repository.getMostPopularArticles() as Single.Success\n        Truth.assertThat(actualResult.data.results.size).isEqualTo(0)\n    }\n\n    @Test\n    fun `on get popular api return Error`() = runBlocking {\n        val errorMessage = \"Invalid Token\"\n        coEvery {\n            apiInterface.getMostPopular(any()).await() as BasicResponse\n        } returns BasicResponse(fault = Fault(errorMessage))\n        val actualResult = repository.getMostPopularArticles() as Single.Error\n        Truth.assertThat(actualResult.exception.message).isEqualTo(errorMessage)\n    }\n\n    @Test\n    fun `on get popular api return Exception`() = runBlocking {\n        val expectedException = Exception(\"Error\")\n        coEvery {\n            apiInterface.getMostPopular(any()).await()\n        } throws expectedException\n        val actualResult = repository.getMostPopularArticles() as Single.Error\n        Truth.assertThat(actualResult.exception.message).isEqualTo(expectedException.message)\n    }\n\n\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/test/java/com/abdulrahman/nytimes/main/ui/main/data/PopularArticlesRepositoryTest.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/test/java/com/abdulrahman/nytimes/main/ui/main/data/PopularArticlesRepositoryTest.kt	(date 1607366944000)
+@@ -12,10 +12,10 @@
+ import kotlinx.coroutines.runBlocking
+ import org.junit.Test
+ 
+-class MainRepositoryTest {
++class PopularArticlesRepositoryTest {
+     private val apiInterface: ApiInterface = mockk()
+ 
+-    private val repository = MainRepository(apiInterface = apiInterface)
++    private val repository = PopularArticlesRepository(apiInterface = apiInterface)
+ 
+     private val expectedResult = Result(
+         abstract = "The metal structure has been removed, Utah officials said on Saturday, adding that they had not taken it down.",
+Index: app/src/test/java/com/abdulrahman/nytimes/main/ui/main/viewModel/PopularArticlesViewModelTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.viewModel\n\nimport androidx.test.ext.junit.runners.AndroidJUnit4\nimport com.abdulrahman.nytimes.main.ui.main.data.MainRepository\nimport com.abdulrahman.nytimes.main.utilities.NetworkConnection\nimport io.mockk.mockk\nimport org.junit.runner.RunWith\n\n@RunWith(AndroidJUnit4::class)\nclass MainViewModelTest : BaseObservingViewModelTest() {\n    private val mainRepository: MainRepository = mockk()\n    private val connectivityManager: NetworkConnection = mockk()\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/test/java/com/abdulrahman/nytimes/main/ui/main/viewModel/PopularArticlesViewModelTest.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/test/java/com/abdulrahman/nytimes/main/ui/main/viewModel/PopularArticlesViewModelTest.kt	(date 1607376215000)
+@@ -1,13 +1,78 @@
+ package com.abdulrahman.nytimes.main.ui.main.viewModel
+ 
++import android.os.Build
+ import androidx.test.ext.junit.runners.AndroidJUnit4
+-import com.abdulrahman.nytimes.main.ui.main.data.MainRepository
++import com.abdulrahman.nytimes.main.data.model.Result
++import com.abdulrahman.nytimes.main.data.model.ResultResponse
++import com.abdulrahman.nytimes.main.ui.bases.StateData
++import com.abdulrahman.nytimes.main.ui.bases.result.Single
++import com.abdulrahman.nytimes.main.ui.main.data.PopularArticlesRepository
+ import com.abdulrahman.nytimes.main.utilities.NetworkConnection
++import com.google.common.truth.Truth
++import io.mockk.coEvery
+ import io.mockk.mockk
++import kotlinx.coroutines.runBlocking
++import org.junit.Before
++import org.junit.Test
+ import org.junit.runner.RunWith
++import org.koin.core.context.loadKoinModules
++import org.koin.dsl.module
++import org.robolectric.annotation.Config
+ 
+ @RunWith(AndroidJUnit4::class)
+-class MainViewModelTest : BaseObservingViewModelTest() {
+-    private val mainRepository: MainRepository = mockk()
+-    private val connectivityManager: NetworkConnection = mockk()
++@Config(sdk = [Build.VERSION_CODES.O_MR1])
++class PopularArticlesViewModelTest : BaseObservingViewModelTest() {
++
++    private val popularArticlesRepository: PopularArticlesRepository = mockk()
++    private val networkConnection: NetworkConnection = mockk()
++    private lateinit var viewModel: PopularArticlesViewModel
++
++    private val expectedResult = Result(
++        abstract = "The metal structure has been removed, Utah officials said on Saturday, adding that they had not taken it down.",
++        adxKeywords = "test",
++        assetId = 100000007477435,
++        byline = "By Bryan Pietsch",
++        desFacet = listOf("Art", "Sculpture"),
++        etaId = 0,
++        geoFacet = listOf("Utah"),
++        id = 11,
++        media = emptyList(),
++        nytdsection = "test",
++        orgFacet = listOf("Bureau of Land Management"),
++        publishedDate = "12-12-2020",
++        section = "U.S.",
++        source = "New York Times",
++        subsection = "",
++        title = "That Mysterious Monolith in the Utah Desert? It’s Gone, Officials Say",
++        type = "Article",
++        updated = "nyt://article/6bb97b0e-475e-5888-a484-962f2c241b3a",
++        uri = "https://www.nytimes.com/2020/11/28/us/monolith-utah-disappeared.html",
++        url = "https://www.nytimes.com/2020/11/28/us/monolith-utah-disappeared.html",
++    )
++    private val expectedResultResponse = ResultResponse(
++        copyright = "Copyright (c) 2020 The New York Times Company.  All Rights Reserved.",
++        numResults = 20,
++        results = listOf(expectedResult),
++        status = "OK"
++    )
++
++    @Before
++    override fun startTest() {
++        loadKoinModules(module { single(override = true) { networkConnection } })
++        coEvery { networkConnection.isConnected() } returns true
++        viewModel = PopularArticlesViewModel(popularArticlesRepository, networkConnection)
++        coEvery { popularArticlesRepository.getMostPopularArticles() } returns Single.Success(
++            expectedResultResponse
++        )
++    }
++
++    @Test
++    fun `get popular articles first status loading `() = runBlocking {
++        viewModel.getAllArticles().observeOnce { dateHolder ->
++            Truth.assertThat(dateHolder.getLoading().getStatus())
++                .isEqualTo(StateData.DataStatus.LOADING)
++        }
++
++    }
++
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/abdulrahman/nytimes/main/ui/main/di/mainModule.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.di\n\nimport com.abdulrahman.nytimes.main.ui.main.data.MainRepository\nimport com.abdulrahman.nytimes.main.ui.main.viewModel.MainViewModel\nimport com.abdulrahman.nytimes.main.utilities.NetworkConnection\nimport org.koin.dsl.module\n\nval mainModule = module {\n    factory { MainViewModel(get(), get()) }\n    single { NetworkConnection(get()) }\n\n    single {\n        MainRepository(get())\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/abdulrahman/nytimes/main/ui/main/di/mainModule.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/java/com/abdulrahman/nytimes/main/ui/main/di/mainModule.kt	(date 1607366944000)
+@@ -1,15 +1,15 @@
+ package com.abdulrahman.nytimes.main.ui.main.di
+ 
+-import com.abdulrahman.nytimes.main.ui.main.data.MainRepository
+-import com.abdulrahman.nytimes.main.ui.main.viewModel.MainViewModel
++import com.abdulrahman.nytimes.main.ui.main.data.PopularArticlesRepository
++import com.abdulrahman.nytimes.main.ui.main.viewModel.PopularArticlesViewModel
+ import com.abdulrahman.nytimes.main.utilities.NetworkConnection
+ import org.koin.dsl.module
+ 
+ val mainModule = module {
+-    factory { MainViewModel(get(), get()) }
++    factory { PopularArticlesViewModel(get(), get()) }
+     single { NetworkConnection(get()) }
+ 
+     single {
+-        MainRepository(get())
++        PopularArticlesRepository(get())
+     }
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/abdulrahman/nytimes/main/ui/main/data/PopularArticlesRepository.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.data\n\nimport com.abdulrahman.nytimes.main.ui.bases.result.Single\nimport com.abdulrahman.nytimes.main.data.model.ResultResponse\nimport com.abdulrahman.nytimes.main.data.retrofit.ApiInterface\nimport com.abdulrahman.nytimes.main.ui.bases.BaseRepository\nimport com.abdulrahman.nytimes.main.utilities.Constants\n\n    class MainRepository(apiInterface: ApiInterface) : BaseRepository(apiInterface) {\n    suspend fun getMostPopularArticles(): Single<ResultResponse> {\n        return requestToSingle(method = apiInterface.getMostPopular(Constants.api.API_KEY))\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/abdulrahman/nytimes/main/ui/main/data/PopularArticlesRepository.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/java/com/abdulrahman/nytimes/main/ui/main/data/PopularArticlesRepository.kt	(date 1607366944000)
+@@ -6,7 +6,7 @@
+ import com.abdulrahman.nytimes.main.ui.bases.BaseRepository
+ import com.abdulrahman.nytimes.main.utilities.Constants
+ 
+-    class MainRepository(apiInterface: ApiInterface) : BaseRepository(apiInterface) {
++    class PopularArticlesRepository(apiInterface: ApiInterface) : BaseRepository(apiInterface) {
+     suspend fun getMostPopularArticles(): Single<ResultResponse> {
+         return requestToSingle(method = apiInterface.getMostPopular(Constants.api.API_KEY))
+     }
+Index: app/src/main/res/navigation/main_navigation.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\n<navigation xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    xmlns:tools=\"http://schemas.android.com/tools\"\n    android:id=\"@+id/home_navigation\"\n    app:startDestination=\"@id/mainFragment\"\n    tools:ignore=\"UnusedNavigation\">\n\n\n    <fragment\n        android:id=\"@+id/mainFragment\"\n        android:name=\"com.abdulrahman.nytimes.main.ui.main.view.MainFragment\"\n        android:label=\"fragment_main\"\n        tools:layout=\"@layout/main_fragment\">\n        <action\n            android:id=\"@+id/action_homeFragment_to_detailsFragment\"\n            app:destination=\"@id/detailsFragment\" />\n    </fragment>\n    <fragment\n        android:id=\"@+id/detailsFragment\"\n        android:name=\"com.abdulrahman.nytimes.main.ui.details.DetailsFragment\"\n        android:label=\"fragment_details\"\n        tools:layout=\"@layout/fragment_details\" />\n\n</navigation>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/navigation/main_navigation.xml	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/res/navigation/main_navigation.xml	(date 1607366276000)
+@@ -3,13 +3,13 @@
+     xmlns:app="http://schemas.android.com/apk/res-auto"
+     xmlns:tools="http://schemas.android.com/tools"
+     android:id="@+id/home_navigation"
+-    app:startDestination="@id/mainFragment"
++    app:startDestination="@id/popularArticlesFragment"
+     tools:ignore="UnusedNavigation">
+ 
+ 
+     <fragment
+-        android:id="@+id/mainFragment"
+-        android:name="com.abdulrahman.nytimes.main.ui.main.view.MainFragment"
++        android:id="@+id/popularArticlesFragment"
++        android:name="com.abdulrahman.nytimes.main.ui.main.view.PopularArticlesFragment"
+         android:label="fragment_main"
+         tools:layout="@layout/main_fragment">
+         <action
+@@ -18,7 +18,7 @@
+     </fragment>
+     <fragment
+         android:id="@+id/detailsFragment"
+-        android:name="com.abdulrahman.nytimes.main.ui.details.DetailsFragment"
++        android:name="com.abdulrahman.nytimes.main.ui.details.ArticleDetailsFragment"
+         android:label="fragment_details"
+         tools:layout="@layout/fragment_details" />
+ 
+Index: app/src/main/res/layout/item_article.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\n<androidx.constraintlayout.widget.ConstraintLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    xmlns:tools=\"http://schemas.android.com/tools\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"wrap_content\"\n    android:layout_margin=\"@dimen/padding_small\"\n    android:clickable=\"true\"\n    android:focusable=\"true\"\n    android:foreground=\"?attr/selectableItemBackground\"\n    android:orientation=\"horizontal\">\n\n    <ImageView\n        android:id=\"@+id/image_view\"\n        android:layout_width=\"50dp\"\n        android:layout_height=\"50dp\"\n        android:layout_gravity=\"center\"\n        android:layout_marginStart=\"8dp\"\n        android:layout_marginEnd=\"8dp\"\n        android:scaleType=\"fitXY\"\n        app:layout_constraintBottom_toBottomOf=\"parent\"\n        app:layout_constraintStart_toStartOf=\"parent\"\n        app:layout_constraintTop_toTopOf=\"parent\"\n        tools:src=\"@drawable/ic_image\" />\n\n    <TextView\n        android:id=\"@+id/tv_text\"\n        android:layout_width=\"0dp\"\n        android:layout_height=\"wrap_content\"\n        android:layout_marginStart=\"16dp\"\n        android:layout_marginEnd=\"16dp\"\n        android:ellipsize=\"end\"\n        android:lines=\"2\"\n        android:text=\"Amazon cracked down on coronavirus price gouging. Now, while the rest of the world searches, some sellers are holding stockpiles of sanitizer and masks.\"\n        android:textColor=\"#000\"\n        android:textSize=\"12sp\"\n        app:layout_constraintEnd_toStartOf=\"@+id/details_image\"\n        app:layout_constraintStart_toEndOf=\"@+id/image_view\"\n        app:layout_constraintTop_toTopOf=\"parent\" />\n\n    <ImageView\n        android:id=\"@+id/details_image\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\"\n        android:layout_gravity=\"center\"\n        android:layout_marginStart=\"8dp\"\n        android:layout_marginEnd=\"8dp\"\n        android:scaleType=\"fitXY\"\n        android:src=\"@drawable/ic_right_arrow\"\n        app:layout_constraintBottom_toBottomOf=\"parent\"\n        app:layout_constraintEnd_toEndOf=\"parent\"\n        app:layout_constraintTop_toTopOf=\"parent\" />\n\n    <TextView\n        android:id=\"@+id/tv_owner\"\n        android:layout_width=\"0dp\"\n        android:layout_height=\"wrap_content\"\n        android:layout_marginStart=\"16dp\"\n        android:ellipsize=\"end\"\n        android:gravity=\"start\"\n        android:text=\"By Jack Nicas\"\n        android:textSize=\"10sp\"\n        app:layout_constraintBottom_toBottomOf=\"@id/calendar_icon\"\n        app:layout_constraintEnd_toStartOf=\"@+id/calendar_icon\"\n        app:layout_constraintStart_toEndOf=\"@+id/image_view\"\n        app:layout_constraintTop_toTopOf=\"@id/calendar_icon\" />\n\n    <TextView\n        android:id=\"@+id/tv_date\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\"\n        android:layout_gravity=\"center\"\n        android:text=\"2020-03-14\"\n        android:textSize=\"10sp\"\n        app:layout_constraintBottom_toBottomOf=\"@id/calendar_icon\"\n        app:layout_constraintEnd_toStartOf=\"@+id/details_image\"\n        app:layout_constraintTop_toBottomOf=\"@+id/tv_text\"\n        app:layout_constraintTop_toTopOf=\"@+id/calendar_icon\" />\n\n    <ImageView\n        android:id=\"@+id/calendar_icon\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\"\n        android:layout_marginTop=\"8dp\"\n        android:scaleType=\"fitXY\"\n        app:layout_constraintEnd_toStartOf=\"@+id/tv_date\"\n        app:layout_constraintTop_toBottomOf=\"@+id/tv_text\"\n        tools:srcCompat=\"@drawable/ic_calender\" />\n\n\n</androidx.constraintlayout.widget.ConstraintLayout>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/item_article.xml	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/res/layout/item_article.xml	(date 1607374946000)
+@@ -7,6 +7,7 @@
+     android:layout_margin="@dimen/padding_small"
+     android:clickable="true"
+     android:focusable="true"
++    android:id="@+id/container"
+     android:foreground="?attr/selectableItemBackground"
+     android:orientation="horizontal">
+ 
+Index: app/src/androidTest/java/com/abdulrahman/nytimes/main/MainScreenTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes\n\nimport androidx.test.espresso.IdlingRegistry\nimport androidx.test.ext.junit.runners.AndroidJUnit4\nimport androidx.test.rule.ActivityTestRule\nimport com.abdulrahman.nytimes.presentation.common.espressoidling.Espresso\nimport com.abdulrahman.nytimes.presentation.mainscreen.MainActivity\nimport kotlinx.coroutines.runBlocking\nimport org.junit.After\nimport org.junit.Before\nimport org.junit.Rule\nimport org.junit.Test\nimport org.junit.runner.RunWith\n\n@RunWith(AndroidJUnit4::class)\nclass MainScreenTest {\n\n\n    @Rule\n    @JvmField\n    var activityRule: ActivityTestRule<MainActivity> =\n        ActivityTestRule(MainActivity::class.java, false, true)\n\n    @Before\n    fun setup() = runBlocking {\n        IdlingRegistry.getInstance().register(Espresso.getIdlingResource())\n        return@runBlocking\n    }\n\n    @Test\n    fun addItemToFav() {\n\n        MatchListScreen.addItemToFavourite()\n        //Sleep for 2 seconds to see favourite\n        Thread.sleep(2000)\n        MatchListScreen.openFavouriteScreen()\n        //Sleep for 2 seconds to make sure item is added to favourite\n        Thread.sleep(2000)\n        MatchListScreen.openHistoryScreen()\n        MatchListScreen.openMainScreen()\n        //Sleep for 2 seconds after all is done\n        Thread.sleep(2000)\n    }\n\n    @After\n    fun onTestFinish() {\n        IdlingRegistry.getInstance().unregister(Espresso.getIdlingResource())\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/androidTest/java/com/abdulrahman/nytimes/main/MainScreenTest.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/androidTest/java/com/abdulrahman/nytimes/main/MainScreenTest.kt	(date 1607375157000)
+@@ -1,10 +1,10 @@
+-package com.abdulrahman.nytimes
++package com.abdulrahman.nytimes.main
+ 
+ import androidx.test.espresso.IdlingRegistry
+ import androidx.test.ext.junit.runners.AndroidJUnit4
+ import androidx.test.rule.ActivityTestRule
+-import com.abdulrahman.nytimes.presentation.common.espressoidling.Espresso
+-import com.abdulrahman.nytimes.presentation.mainscreen.MainActivity
++import com.abdulrahman.nytimes.MainActivity
++import com.abdulrahman.nytimes.main.ui.espressoidling.Espresso
+ import kotlinx.coroutines.runBlocking
+ import org.junit.After
+ import org.junit.Before
+@@ -12,6 +12,7 @@
+ import org.junit.Test
+ import org.junit.runner.RunWith
+ 
++@Suppress("DEPRECATION")
+ @RunWith(AndroidJUnit4::class)
+ class MainScreenTest {
+ 
+@@ -29,16 +30,7 @@
+ 
+     @Test
+     fun addItemToFav() {
+-
+-        MatchListScreen.addItemToFavourite()
+-        //Sleep for 2 seconds to see favourite
+-        Thread.sleep(2000)
+-        MatchListScreen.openFavouriteScreen()
+-        //Sleep for 2 seconds to make sure item is added to favourite
+-        Thread.sleep(2000)
+-        MatchListScreen.openHistoryScreen()
+-        MatchListScreen.openMainScreen()
+-        //Sleep for 2 seconds after all is done
++        PopularListScreen.clickOnFirstRecyclerItem()
+         Thread.sleep(2000)
+     }
+ 
+Index: app/src/main/res/values/strings.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><resources>\n    <string name=\"app_name\">NYTimes</string>\n\n    <!-- TODO: Remove or change this placeholder text -->\n    <string name=\"hello_blank_fragment\">Hello blank fragment</string>\n    <string name=\"no_internet_connection\">No Internet Connection</string>\n</resources>\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/values/strings.xml	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/res/values/strings.xml	(date 1607366944000)
+@@ -1,5 +1,5 @@
+ <resources>
+-    <string name="app_name">NYTimes</string>
++    <string name="app_name">NYTimesPopularArticles</string>
+ 
+     <!-- TODO: Remove or change this placeholder text -->
+     <string name="hello_blank_fragment">Hello blank fragment</string>
+Index: app/src/test/java/com/abdulrahman/nytimes/main/ui/main/viewModel/BaseObservingViewModelTest.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.main.viewModel\n\nimport androidx.arch.core.executor.testing.InstantTaskExecutorRule\nimport androidx.lifecycle.*\nimport org.junit.Rule\n\nopen class BaseObservingViewModelTest{\n\n    @get:Rule\n    val taskExecutorRule = InstantTaskExecutorRule()\n\n\n    protected fun <T> LiveData<T>.observeOnce(onChangeHandler: (T) -> Unit) {\n        val observer = OneTimeObserver(handler = onChangeHandler)\n        observe(observer, observer)\n    }\n\n\n    private class OneTimeObserver<T>(private val handler: (T) -> Unit) : Observer<T>,\n        LifecycleOwner {\n        private val lifecycle = LifecycleRegistry(this)\n\n        init {\n            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)\n        }\n\n        override fun getLifecycle(): Lifecycle = lifecycle\n\n        override fun onChanged(t: T) {\n            handler(t)\n            lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)\n        }\n\n\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/test/java/com/abdulrahman/nytimes/main/ui/main/viewModel/BaseObservingViewModelTest.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/test/java/com/abdulrahman/nytimes/main/ui/main/viewModel/BaseObservingViewModelTest.kt	(date 1607373490000)
+@@ -1,14 +1,25 @@
+ package com.abdulrahman.nytimes.main.ui.main.viewModel
+ 
++import android.content.Context
+ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+ import androidx.lifecycle.*
++import org.junit.After
++import org.junit.Before
+ import org.junit.Rule
++import org.koin.core.context.stopKoin
++import org.koin.test.KoinTest
++import org.koin.test.get
+ 
+-open class BaseObservingViewModelTest{
++open class BaseObservingViewModelTest : KoinTest {
++    lateinit var context: Context
+ 
+     @get:Rule
+     val taskExecutorRule = InstantTaskExecutorRule()
+ 
++    @Before
++    open fun startTest() {
++        context = get()
++    }
+ 
+     protected fun <T> LiveData<T>.observeOnce(onChangeHandler: (T) -> Unit) {
+         val observer = OneTimeObserver(handler = onChangeHandler)
+@@ -30,7 +41,10 @@
+             handler(t)
+             lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+         }
++    }
+ 
+-
++    @After
++    fun endTest() {
++        stopKoin()
+     }
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/abdulrahman/nytimes/main/ui/details/ArticleDetailsFragment.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main.ui.details\n\n\nimport android.os.Bundle\nimport com.abdulrahman.nytimes.R\nimport com.abdulrahman.nytimes.main.data.model.Result\nimport com.abdulrahman.nytimes.main.ui.bases.BaseFragment\nimport com.squareup.picasso.Picasso\nimport kotlinx.android.synthetic.main.fragment_details.*\n\nclass DetailsFragment : BaseFragment() {\n\n    override val layoutId: Int\n        get() = R.layout.fragment_details\n\n    override fun onActivityCreated(savedInstanceState: Bundle?) {\n        super.onActivityCreated(savedInstanceState)\n\n        initViews()\n    }\n\n    private fun initViews() {\n        arguments?.let {\n            val article = it.getParcelable<Result>(ARTICLE)\n            if (article != null) {\n\n                if (article.media.isNotEmpty()) {\n                    Picasso.get()\n                        .load(article.media[0].mediaMetadata[2].url)\n                        .into(image_view)\n                }\n                tv_title.text = article.title\n                tv_abstract.text = article.abstract\n                tv_by_line.text = article.byline\n                tv_section.text = article.section\n            } else {\n                navigationController.popBackStack()\n            }\n        } ?: run {\n            navigationController.popBackStack()\n        }\n    }\n\n    companion object {\n        val ARTICLE = \"article\"\n    }\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/java/com/abdulrahman/nytimes/main/ui/details/ArticleDetailsFragment.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/java/com/abdulrahman/nytimes/main/ui/details/ArticleDetailsFragment.kt	(date 1607366276000)
+@@ -8,7 +8,7 @@
+ import com.squareup.picasso.Picasso
+ import kotlinx.android.synthetic.main.fragment_details.*
+ 
+-class DetailsFragment : BaseFragment() {
++class ArticleDetailsFragment : BaseFragment() {
+ 
+     override val layoutId: Int
+         get() = R.layout.fragment_details
+Index: app/build.gradle
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>apply plugin: 'com.android.application'\n\napply plugin: 'kotlin-android'\napply plugin: 'kotlin-kapt'\n\napply plugin: 'kotlin-android-extensions'\n\nandroid {\n    compileSdkVersion 29\n    buildToolsVersion \"29.0.3\"\n    defaultConfig {\n        applicationId \"com.abdulrahman.nytimes\"\n        minSdkVersion 19\n        targetSdkVersion 29\n        versionCode 1\n        versionName \"1.0\"\n        testInstrumentationRunner \"androidx.test.runner.AndroidJUnitRunner\"\n    }\n    buildTypes {\n        release {\n            minifyEnabled false\n            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'\n        }\n    }\n\n    compileOptions {\n        sourceCompatibility 1.8\n        targetCompatibility 1.8\n    }\n\n    kotlinOptions {\n        jvmTarget = \"1.8\"\n        freeCompilerArgs += [\"-Xopt-in=kotlin.RequiresOptIn\"]\n    }\n}\ndependencies {\n    implementation fileTree(dir: 'libs', include: ['*.jar'])\n    implementation \"org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version\"\n    implementation 'androidx.appcompat:appcompat:1.2.0'\n    implementation 'androidx.core:core-ktx:1.3.2'\n    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'\n    implementation 'com.google.android.material:material:1.2.1'\n    implementation \"androidx.swiperefreshlayout:swiperefreshlayout:1.1.0\"\n\n    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'\n    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'\n\n    implementation 'com.squareup.retrofit2:retrofit:2.9.0'\n    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'\n    implementation 'com.android.support:recyclerview-v7:29.0.0'\n\n    // Picasso\n    implementation 'com.squareup.picasso:picasso:2.71828'\n    implementation 'jp.wasabeef:picasso-transformations:2.2.1'\n\n    def nav_version = \"2.3.2\"\n\n    implementation \"androidx.navigation:navigation-fragment-ktx:$nav_version\"\n    implementation \"androidx.navigation:navigation-ui-ktx:$nav_version\"\n    androidTestImplementation \"androidx.navigation:navigation-testing:$nav_version\"\n\n    def koin_version = '2.1.5'\n    implementation \"org.koin:koin-core:$koin_version\"\n    testImplementation \"org.koin:koin-test:$koin_version\"\n    implementation \"org.koin:koin-androidx-scope:$koin_version\"\n    implementation \"org.koin:koin-androidx-viewmodel:$koin_version\"\n    implementation 'com.github.MohammadSianaki:Retrofit2-Flow-Call-Adapter:0.2.0'\n\n    // circularimageview image\n    implementation 'com.mikhaellopez:circularimageview:4.2.0'\n\n    implementation \"androidx.test.espresso:espresso-idling-resource:3.3.0\"\n\n    //unit test\n    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'\n    androidTestImplementation \"androidx.test.espresso:espresso-idling-resource:3.3.0\"\n    androidTestImplementation \"androidx.test.ext:junit:1.1.2\"\n    androidTestImplementation \"androidx.arch.core:core-testing:2.1.0\"\n\n    testImplementation \"androidx.test.espresso:espresso-idling-resource:3.3.0\"\n    testImplementation \"androidx.test.ext:junit:1.1.2\"\n    testImplementation \"io.mockk:mockk:1.9.3\"\n    testImplementation \"io.mockk:mockk-android:1.9.3\"\n    testImplementation \"androidx.test.ext:truth:1.3.0\"\n    testImplementation 'org.robolectric:robolectric:4.3.1'\n    testImplementation \"androidx.arch.core:core-testing:2.1.0\"\n\n    implementation \"com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2\"\n\n    androidTestImplementation('com.android.support.test.espresso:espresso-contrib:3.0.2')\n\n}\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/build.gradle	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/build.gradle	(date 1607376280000)
+@@ -6,12 +6,17 @@
+ apply plugin: 'kotlin-android-extensions'
+ 
+ android {
+-    compileSdkVersion 29
++    compileSdkVersion 30
+     buildToolsVersion "29.0.3"
++    testOptions.unitTests.includeAndroidResources = true
++    useLibrary 'org.apache.http.legacy'
++
++    useLibrary 'android.test.base'
++    useLibrary 'android.test.mock'
+     defaultConfig {
+         applicationId "com.abdulrahman.nytimes"
+         minSdkVersion 19
+-        targetSdkVersion 29
++        targetSdkVersion 30
+         versionCode 1
+         versionName "1.0"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+@@ -22,6 +27,12 @@
+             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+         }
+     }
++    testOptions {
++        unitTests {
++            includeAndroidResources = true
++            returnDefaultValues = true
++        }
++    }
+ 
+     compileOptions {
+         sourceCompatibility 1.8
+@@ -47,7 +58,7 @@
+ 
+     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+-    implementation 'com.android.support:recyclerview-v7:29.0.0'
++    implementation "androidx.recyclerview:recyclerview:1.1.0"
+ 
+     // Picasso
+     implementation 'com.squareup.picasso:picasso:2.71828'
+@@ -64,10 +75,7 @@
+     testImplementation "org.koin:koin-test:$koin_version"
+     implementation "org.koin:koin-androidx-scope:$koin_version"
+     implementation "org.koin:koin-androidx-viewmodel:$koin_version"
+-    implementation 'com.github.MohammadSianaki:Retrofit2-Flow-Call-Adapter:0.2.0'
+-
+-    // circularimageview image
+-    implementation 'com.mikhaellopez:circularimageview:4.2.0'
++    testImplementation "org.koin:koin-test:$koin_version"
+ 
+     implementation "androidx.test.espresso:espresso-idling-resource:3.3.0"
+ 
+@@ -75,8 +83,10 @@
+     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
+     androidTestImplementation "androidx.test.espresso:espresso-idling-resource:3.3.0"
+     androidTestImplementation "androidx.test.ext:junit:1.1.2"
++    androidTestImplementation "org.koin:koin-test:$koin_version"
++
+     androidTestImplementation "androidx.arch.core:core-testing:2.1.0"
+-
++    testImplementation 'junit:junit:4.13'
+     testImplementation "androidx.test.espresso:espresso-idling-resource:3.3.0"
+     testImplementation "androidx.test.ext:junit:1.1.2"
+     testImplementation "io.mockk:mockk:1.9.3"
+@@ -84,6 +94,9 @@
+     testImplementation "androidx.test.ext:truth:1.3.0"
+     testImplementation 'org.robolectric:robolectric:4.3.1'
+     testImplementation "androidx.arch.core:core-testing:2.1.0"
++    testImplementation 'com.jraska.livedata:testing-ktx:1.1.2'
++    androidTestImplementation "com.agoda.kakao:kakao:1.4.0-androidx"
++    androidTestImplementation "androidx.test:rules:1.3.0"
+ 
+     implementation "com.jakewharton.retrofit:retrofit2-kotlin-coroutines-adapter:0.9.2"
+ 
+Index: app/src/main/res/layout/main_fragment.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\n<FrameLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    xmlns:tools=\"http://schemas.android.com/tools\"\n    android:id=\"@+id/main\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\"\n    tools:context=\".main.ui.main.view.MainFragment\">\n    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout\n        android:id=\"@+id/sr_refresh\"\n        android:layout_width=\"match_parent\"\n        android:layout_height=\"match_parent\"\n        app:layout_constraintBottom_toBottomOf=\"parent\"\n        app:layout_constraintEnd_toEndOf=\"parent\"\n        app:layout_constraintStart_toStartOf=\"parent\"\n        app:layout_constraintTop_toTopOf=\"parent\">\n\n        <FrameLayout\n            android:id=\"@+id/fl_container\"\n            android:layout_width=\"match_parent\"\n            android:layout_height=\"match_parent\">\n\n            <androidx.recyclerview.widget.RecyclerView\n                android:id=\"@+id/rv_articles\"\n                android:layout_width=\"match_parent\"\n                android:layout_height=\"wrap_content\"\n                android:orientation=\"vertical\"\n                app:layoutManager=\"androidx.recyclerview.widget.LinearLayoutManager\"\n                tools:listitem=\"@layout/item_article\" />\n\n        </FrameLayout>\n    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>\n    <include layout=\"@layout/layout_error_loading\" />\n\n</FrameLayout>\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/main_fragment.xml	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/res/layout/main_fragment.xml	(date 1607366276000)
+@@ -5,7 +5,7 @@
+     android:id="@+id/main"
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+-    tools:context=".main.ui.main.view.MainFragment">
++    tools:context=".main.ui.main.view.PopularArticlesFragment">
+     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+         android:id="@+id/sr_refresh"
+         android:layout_width="match_parent"
+Index: app/src/androidTest/java/com/abdulrahman/nytimes/main/PopularListScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes.main\n\nimport androidx.test.espresso.Espresso.onView\nimport androidx.test.espresso.action.ViewActions.click\nimport com.abdulrahman.nytimes.R\nimport com.agoda.kakao.KView\nimport com.agoda.kakao.Screen\n\n\nobject MatchListScreen : Screen<MatchListScreen>() {\n    private val bottomNavigationMainScreen = KView { withId(R.id.layout_bottom_main) }\n    private val bottomNavigationFavouriteScreen = KView { withId(R.id.layout_bottom_favourite) }\n    private val bottomNavigationHistoryScreen = KView { withId(R.id.layout_bottom_history) }\n\n    fun openHistoryScreen() = bottomNavigationHistoryScreen { click() }\n    fun openFavouriteScreen() = bottomNavigationFavouriteScreen { click() }\n    fun openMainScreen() = bottomNavigationMainScreen { click() }\n\n    fun addItemToFavourite() {\n        onView(\n            RecyclerViewMatcher(R.id.matches_recycler_view)\n                .atPositionOnView(1, R.id.fav_image)\n        )\n            .perform(click())\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/androidTest/java/com/abdulrahman/nytimes/main/PopularListScreen.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/androidTest/java/com/abdulrahman/nytimes/main/PopularListScreen.kt	(date 1607374946000)
+@@ -3,24 +3,14 @@
+ import androidx.test.espresso.Espresso.onView
+ import androidx.test.espresso.action.ViewActions.click
+ import com.abdulrahman.nytimes.R
+-import com.agoda.kakao.KView
+ import com.agoda.kakao.Screen
+ 
+ 
+-object MatchListScreen : Screen<MatchListScreen>() {
+-    private val bottomNavigationMainScreen = KView { withId(R.id.layout_bottom_main) }
+-    private val bottomNavigationFavouriteScreen = KView { withId(R.id.layout_bottom_favourite) }
+-    private val bottomNavigationHistoryScreen = KView { withId(R.id.layout_bottom_history) }
++object PopularListScreen : Screen<PopularListScreen>() {
+ 
+-    fun openHistoryScreen() = bottomNavigationHistoryScreen { click() }
+-    fun openFavouriteScreen() = bottomNavigationFavouriteScreen { click() }
+-    fun openMainScreen() = bottomNavigationMainScreen { click() }
+-
+-    fun addItemToFavourite() {
++    fun clickOnFirstRecyclerItem() {
+         onView(
+-            RecyclerViewMatcher(R.id.matches_recycler_view)
+-                .atPositionOnView(1, R.id.fav_image)
+-        )
+-            .perform(click())
++            RecyclerViewMatcher(R.id.rv_articles).atPositionOnView(0, R.id.container)
++        ).perform(click())
+     }
+ }
+\ No newline at end of file
+Index: app/src/androidTest/java/com/abdulrahman/nytimes/main/RecyclerViewMatcher.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.abdulrahman.nytimes\n\nimport android.content.res.Resources\nimport android.view.View\nimport androidx.recyclerview.widget.RecyclerView\nimport org.hamcrest.Description\nimport org.hamcrest.Matcher\nimport org.hamcrest.TypeSafeMatcher\n\n\nclass RecyclerViewMatcher(private val recyclerViewId: Int) {\n\n    fun atPositionOnView(position: Int, targetViewId: Int): Matcher<View> {\n\n        return object : TypeSafeMatcher<View>() {\n            var resources: Resources? = null\n            var childView: View? = null\n\n            override fun describeTo(description: Description) {\n                var idDescription = recyclerViewId.toString()\n                if (this.resources != null) {\n                    idDescription = try {\n                        this.resources!!.getResourceName(recyclerViewId)\n                    } catch (var4: Resources.NotFoundException) {\n                        String.format(\n                            \"%s (resource name not found)\",\n                            Integer.valueOf(recyclerViewId)\n                        )\n                    }\n\n                }\n\n                description.appendText(\"with id: $idDescription\")\n            }\n\n            override fun matchesSafely(view: View): Boolean {\n\n                this.resources = view.resources\n\n                if (childView == null) {\n                    val recyclerView =\n                        view.rootView.findViewById<View>(recyclerViewId) as RecyclerView\n                    if (recyclerView.id == recyclerViewId) {\n                        childView =\n                            recyclerView.findViewHolderForAdapterPosition(position)!!.itemView\n                    } else {\n                        return false\n                    }\n                }\n\n                return if (targetViewId == -1) {\n                    view === childView\n                } else {\n                    val targetView = childView!!.findViewById<View>(targetViewId)\n                    view === targetView\n                }\n\n            }\n        }\n    }\n\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/androidTest/java/com/abdulrahman/nytimes/main/RecyclerViewMatcher.kt	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/androidTest/java/com/abdulrahman/nytimes/main/RecyclerViewMatcher.kt	(date 1607374809000)
+@@ -1,4 +1,4 @@
+-package com.abdulrahman.nytimes
++package com.abdulrahman.nytimes.main
+ 
+ import android.content.res.Resources
+ import android.view.View
+Index: app/src/main/res/layout/fragment_details.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\n<androidx.constraintlayout.widget.ConstraintLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    xmlns:tools=\"http://schemas.android.com/tools\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\"\n    android:padding=\"16dp\"\n    tools:context=\".main.ui.details.DetailsFragment\">\n\n    <androidx.appcompat.widget.AppCompatTextView\n        android:id=\"@+id/tv_title\"\n        android:layout_width=\"match_parent\"\n        android:layout_height=\"wrap_content\"\n        android:gravity=\"center\"\n        android:text=\"Hello Any Body Here\"\n        android:textAlignment=\"gravity\"\n        android:textColor=\"#000\"\n        android:textSize=\"18sp\"\n        android:textStyle=\"bold\"\n        app:layout_constraintEnd_toEndOf=\"parent\"\n        app:layout_constraintStart_toStartOf=\"parent\"\n        app:layout_constraintTop_toTopOf=\"parent\" />\n\n    <ImageView\n        android:id=\"@+id/image_view\"\n        android:layout_width=\"match_parent\"\n        android:layout_height=\"250dp\"\n        android:scaleType=\"centerCrop\"\n        app:layout_constraintEnd_toEndOf=\"parent\"\n        app:layout_constraintStart_toStartOf=\"parent\"\n        app:layout_constraintTop_toBottomOf=\"@+id/tv_title\" />\n\n\n    <androidx.appcompat.widget.AppCompatTextView\n        android:id=\"@+id/tv_abstract\"\n        android:layout_width=\"0dp\"\n        android:layout_height=\"wrap_content\"\n        android:gravity=\"start\"\n        android:text=\"Hello Any Body Here\"\n        android:textAlignment=\"gravity\"\n        android:textColor=\"#000\"\n        android:textSize=\"16sp\"\n        app:layout_constraintEnd_toEndOf=\"parent\"\n        app:layout_constraintStart_toStartOf=\"parent\"\n        app:layout_constraintTop_toBottomOf=\"@+id/image_view\" />\n\n    <TextView\n        android:id=\"@+id/tv_by_line\"\n        android:layout_width=\"0dp\"\n        android:layout_height=\"wrap_content\"\n        android:ellipsize=\"end\"\n        android:text=\"By Edward Smith\"\n        android:textSize=\"12sp\"\n        app:layout_constraintEnd_toStartOf=\"@+id/tv_section\"\n        app:layout_constraintStart_toStartOf=\"parent\"\n        app:layout_constraintTop_toBottomOf=\"@+id/tv_abstract\" />\n\n    <androidx.appcompat.widget.AppCompatTextView\n        android:id=\"@+id/tv_section\"\n        android:layout_width=\"wrap_content\"\n        android:layout_height=\"wrap_content\"\n        android:text=\"Technology\"\n        android:textSize=\"12sp\"\n        app:layout_constraintEnd_toEndOf=\"parent\"\n        app:layout_constraintTop_toBottomOf=\"@+id/tv_abstract\" />\n\n\n</androidx.constraintlayout.widget.ConstraintLayout>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/src/main/res/layout/fragment_details.xml	(revision db73a8240628d1c599abf16a794cb5de3831db26)
++++ app/src/main/res/layout/fragment_details.xml	(date 1607366276000)
+@@ -5,7 +5,7 @@
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:padding="16dp"
+-    tools:context=".main.ui.details.DetailsFragment">
++    tools:context=".main.ui.details.ArticleDetailsFragment">
+ 
+     <androidx.appcompat.widget.AppCompatTextView
+         android:id="@+id/tv_title"
