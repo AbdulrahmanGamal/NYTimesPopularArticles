@@ -13,7 +13,6 @@ I used  MVVM  architectural pattern and navigation components  i followed clean 
 4. Retrofit
 5. Mockk for unit testing
 6. Kakao espresso based UI testing libarary  
-7. Roboelectric for mocking android context 
 
 ## Future Enhancements 
 1. save data locally to database and use Room library to see data offline
