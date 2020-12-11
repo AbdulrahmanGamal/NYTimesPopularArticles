@@ -3,7 +3,7 @@ Simple App to display most popular articles from the newyork times
 I used  MVVM  architectural pattern and navigation components  i followed clean archtecture guideline to make code more testable it have
 1. WebService Layer
 2. Repository Layer ( will manuplate data from online api and local storage later )
-3. View Layer contain viewmodel state based pattern and livedata as a state holder  
+3. View Layer contain viewmodel state based pattern and livedata as a state holder also used fragments and navigation components  
 
 
 ## Technologies used 
