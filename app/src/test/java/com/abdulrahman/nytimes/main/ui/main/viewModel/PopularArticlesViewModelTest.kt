@@ -19,7 +19,7 @@ import org.junit.Before
 import org.junit.Test
 
 class PopularArticlesViewModelTest : BaseObservingViewModelTest() {
-    private val mainThreadSurrogate = newSingleThreadContext("UI thread")
+    private val mockedMainThread = newSingleThreadContext("UI thread")
 
     private val popularArticlesRepository: PopularArticlesRepository = mockk()
     private val networkConnection: NetworkConnection = mockk()
@@ -56,7 +56,7 @@ class PopularArticlesViewModelTest : BaseObservingViewModelTest() {
 
     @Before
     fun startTest() {
-        Dispatchers.setMain(mainThreadSurrogate)
+        Dispatchers.setMain(mockedMainThread)
 
         coEvery { networkConnection.isConnected() } returns true
         viewModel = PopularArticlesViewModel(popularArticlesRepository, networkConnection)
@@ -110,7 +110,7 @@ class PopularArticlesViewModelTest : BaseObservingViewModelTest() {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        mainThreadSurrogate.close()
+        mockedMainThread.close()
     }
 
 }
