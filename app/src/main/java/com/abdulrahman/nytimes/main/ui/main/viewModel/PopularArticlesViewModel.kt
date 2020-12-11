@@ -14,7 +14,7 @@ class PopularArticlesViewModel(
     context: CoroutineDispatcher = Dispatchers.Main
 ) : BaseViewModel(mainContext = context) {
 
-    private val allArticlesLiveData: StateLiveData<ResultResponse> = StateLiveData()
+     val allArticlesLiveData: StateLiveData<ResultResponse> = StateLiveData()
 
     fun getAllArticles(): StateLiveData<ResultResponse> {
 

@@ -1,25 +1,16 @@
 package com.abdulrahman.nytimes.main.ui.main.viewModel
 
-import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.*
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
-import org.koin.core.context.stopKoin
-import org.koin.test.KoinTest
-import org.koin.test.get
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
-open class BaseObservingViewModelTest : KoinTest {
-    lateinit var context: Context
+open class BaseObservingViewModelTest {
 
     @get:Rule
     val taskExecutorRule = InstantTaskExecutorRule()
-
-    @Before
-    open fun startTest() {
-        context = get()
-    }
 
     protected fun <T> LiveData<T>.observeOnce(onChangeHandler: (T) -> Unit) {
         val observer = OneTimeObserver(handler = onChangeHandler)
@@ -43,8 +34,27 @@ open class BaseObservingViewModelTest : KoinTest {
         }
     }
 
-    @After
-    fun endTest() {
-        stopKoin()
+    fun <T> LiveData<T>.getOrAwaitValue(
+        time: Long = 2,
+        timeUnit: TimeUnit = TimeUnit.SECONDS
+    ): T {
+        var data: T? = null
+        val latch = CountDownLatch(1)
+        val observer = object : Observer<T> {
+            override fun onChanged(o: T?) {
+                data = o
+                latch.countDown()
+                this@getOrAwaitValue.removeObserver(this)
+            }
+        }
+
+        this.observeForever(observer)
+
+        if (!latch.await(time, timeUnit)) {
+            throw TimeoutException("LiveData value was never set.")
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        return data as T
     }
 }

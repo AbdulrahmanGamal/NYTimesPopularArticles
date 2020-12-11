@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 
 @Suppress("DEPRECATION")
 @RunWith(AndroidJUnit4::class)
-class MainScreenTest {
+class TestApplication {
 
 
     @Rule
@@ -29,7 +29,7 @@ class MainScreenTest {
     }
 
     @Test
-    fun addItemToFav() {
+    fun onItemRecyclerViewItemClicked() {
         PopularListScreen.clickOnFirstRecyclerItem()
         Thread.sleep(2000)
     }
@@ -38,4 +38,6 @@ class MainScreenTest {
     fun onTestFinish() {
         IdlingRegistry.getInstance().unregister(Espresso.getIdlingResource())
     }
+
+
 }

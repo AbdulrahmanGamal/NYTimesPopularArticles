@@ -46,7 +46,7 @@ class PopularArticlesFragment : BaseFragment(), OnListItemClickListener<Result>,
                     it?.getData()?.let { res ->
                         rv_articles.adapter = ArticleAdapter(requireContext(), res.results, this)
                     } ?: run {
-                        showLayoutError("No Data found in list")
+                        showLayoutError(getString(R.string.empty_list_message))
                     }
                 }
 
@@ -57,11 +57,11 @@ class PopularArticlesFragment : BaseFragment(), OnListItemClickListener<Result>,
 
                 StateData.DataStatus.NOT_COMPLETED -> {
                     fl_container.visibility = View.GONE
-                    showLayoutError("Something wrong happened")
+                    showLayoutError(getString(R.string.unexpected_error))
                 }
                 StateData.DataStatus.NO_INTERNET -> {
                     fl_container.visibility = View.GONE
-                    showLayoutError("No Internet Connection")
+                    showLayoutError(getString(R.string.no_internet_message))
                 }
             }
         })
